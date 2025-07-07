@@ -36,10 +36,11 @@
       margin-left: auto;
       margin-right: auto;
       font-size: 1.3rem;
-      white-space: pre-wrap; /* preserves spaces/newlines */
+      white-space: pre-wrap;
       text-align: left;
       color: #333;
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      overflow-wrap: break-word;
     }
     h1 {
       color: #007acc;
@@ -70,8 +71,9 @@
   <div id="savedText"></div>
 
   <script>
-    const DOT_THRESHOLD = 200;  // milliseconds
-    const INACTIVITY_TIMEOUT = 3000;  // milliseconds (3 seconds)
+    const DOT_THRESHOLD = 200;  // ms
+    const INACTIVITY_LETTER = 1000; // 1 second to end letter
+    const INACTIVITY_WORD = 3000;  // 3 seconds to end word
 
     const morseDict = {
       '.-':'A','-...':'B','-.-.':'C','-..':'D','.':'E','..-.':'F',
@@ -86,7 +88,6 @@
     let pressStart = null;
     let symbols = [];
     let currentWord = [];
-    let savedText = '';
     let lastInputTime = Date.now();
 
     const morseDiv = document.getElementById('morse');
@@ -119,8 +120,8 @@
     setInterval(() => {
       const now = Date.now();
 
-      // If user paused >1 second, translate current letter
-      if (symbols.length > 0 && now - lastInputTime > 1000) {
+      // If symbols exist and 1+ second passed since last input → decode letter
+      if (symbols.length > 0 && now - lastInputTime > INACTIVITY_LETTER) {
         const morseChar = symbols.join('');
         const letter = morseDict[morseChar] || '?';
         currentWord.push(letter);
@@ -130,12 +131,11 @@
         lastInputTime = now;
       }
 
-      // If user paused >3 seconds, treat as end of word
-      if (currentWord.length > 0 && now - lastInputTime > INACTIVITY_TIMEOUT) {
-        savedText += currentWord.join('') + ' ';
-        savedDiv.textContent = savedText;
-        outputDiv.textContent = '';
+      // If current word exists and 3+ seconds passed since last input → save word
+      if (currentWord.length > 0 && now - lastInputTime > INACTIVITY_WORD) {
+        savedDiv.textContent += currentWord.join('') + ' ';
         currentWord = [];
+        outputDiv.textContent = '';
         morseDiv.textContent = '';
         lastInputTime = now;
       }
