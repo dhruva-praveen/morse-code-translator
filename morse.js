@@ -13,11 +13,13 @@ const morseDict = {
 
 let pressStart = null;
 let symbols = [];
-let word = [];
+let currentWord = [];
+let savedText = '';
 let lastInputTime = Date.now();
 
 const morseDiv = document.getElementById('morse');
 const outputDiv = document.getElementById('output');
+const savedDiv = document.getElementById('savedText');
 
 document.addEventListener('keydown', (e) => {
   if (e.code === 'Space' && pressStart === null) {
@@ -44,19 +46,25 @@ document.addEventListener('keyup', (e) => {
 
 setInterval(() => {
   const now = Date.now();
+
+  // If user paused for >1s, translate current letter
   if (symbols.length > 0 && now - lastInputTime > 1000) {
     const morseChar = symbols.join('');
     const letter = morseDict[morseChar] || '?';
-    word.push(letter);
-    outputDiv.textContent = word.join('');
+    currentWord.push(letter);
+    outputDiv.textContent = currentWord.join('');
     morseDiv.textContent += ' ';
     symbols = [];
     lastInputTime = now;
   }
 
-  if (word.length > 0 && now - lastInputTime > INACTIVITY_TIMEOUT) {
-    outputDiv.textContent += ' ';
-    word = [];
+  // If user paused for >3s, treat it as end of word
+  if (currentWord.length > 0 && now - lastInputTime > INACTIVITY_TIMEOUT) {
+    savedText += currentWord.join('') + ' ';
+    savedDiv.textContent = savedText;
+    outputDiv.textContent = '';
+    currentWord = [];
     morseDiv.textContent = '';
+    lastInputTime = now;
   }
 }, 200);
