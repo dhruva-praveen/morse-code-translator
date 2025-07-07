@@ -1,19 +1,145 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Morse Code Translator</title>
   <style>
-    body { font-family: Arial; text-align: center; margin-top: 100px; }
-    #output { font-size: 2rem; margin-top: 20px; }
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 50px;
+      background: #f9f9f9;
+      color: #222;
+    }
+    #morse {
+      font-size: 2rem;
+      min-height: 40px;
+      margin-top: 20px;
+      color: #555;
+      letter-spacing: 5px;
+    }
+    #output {
+      font-size: 2.5rem;
+      font-weight: bold;
+      margin-top: 10px;
+      min-height: 40px;
+      color: #007acc;
+    }
+    #savedText {
+      margin-top: 40px;
+      border: 2px solid #ddd;
+      background: white;
+      padding: 20px;
+      min-height: 150px;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+      font-size: 1.3rem;
+      white-space: pre-wrap; /* preserves spaces/newlines */
+      text-align: left;
+      color: #333;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #007acc;
+    }
+    p.instructions {
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+      font-size: 1.1rem;
+      color: #444;
+    }
   </style>
 </head>
 <body>
   <h1>Morse Code Translator</h1>
-  <p>Tap the <strong>spacebar</strong> to input Morse code.</p>
-  <p>• Short press = dot (.)<br>• Long press = dash (-)<br>• Pause = new letter<br>• 3s pause = new word</p>
+  <p class="instructions">
+    Tap the <strong>spacebar</strong> to input Morse code.<br />
+    • Short press = dot (.)<br />
+    • Long press = dash (-)<br />
+    • Pause between letters = 1 second<br />
+    • Pause between words = 3 seconds
+  </p>
+
   <div id="morse"></div>
   <div id="output"></div>
 
-  <script src="morse.js"></script>
+  <h2>Translated Text</h2>
+  <div id="savedText"></div>
+
+  <script>
+    const DOT_THRESHOLD = 200;  // milliseconds
+    const INACTIVITY_TIMEOUT = 3000;  // milliseconds (3 seconds)
+
+    const morseDict = {
+      '.-':'A','-...':'B','-.-.':'C','-..':'D','.':'E','..-.':'F',
+      '--.':'G','....':'H','..':'I','.---':'J','-.-':'K','.-..':'L',
+      '--':'M','-.':'N','---':'O','.--.':'P','--.-':'Q','.-.':'R',
+      '...':'S','-':'T','..-':'U','...-':'V','.--':'W','-..-':'X',
+      '-.--':'Y','--..':'Z','-----':'0','.----':'1','..---':'2',
+      '...--':'3','....-':'4','.....':'5','-....':'6','--...':'7',
+      '---..':'8','----.':'9'
+    };
+
+    let pressStart = null;
+    let symbols = [];
+    let currentWord = [];
+    let savedText = '';
+    let lastInputTime = Date.now();
+
+    const morseDiv = document.getElementById('morse');
+    const outputDiv = document.getElementById('output');
+    const savedDiv = document.getElementById('savedText');
+
+    document.addEventListener('keydown', (e) => {
+      if (e.code === 'Space' && pressStart === null) {
+        pressStart = Date.now();
+      }
+    });
+
+    document.addEventListener('keyup', (e) => {
+      if (e.code === 'Space' && pressStart !== null) {
+        const duration = Date.now() - pressStart;
+        if (duration < DOT_THRESHOLD) {
+          // Ignore accidental tap
+        } else if (duration < 500) {
+          symbols.push('.');
+          morseDiv.textContent += '.';
+        } else {
+          symbols.push('-');
+          morseDiv.textContent += '-';
+        }
+        pressStart = null;
+        lastInputTime = Date.now();
+      }
+    });
+
+    setInterval(() => {
+      const now = Date.now();
+
+      // If user paused >1 second, translate current letter
+      if (symbols.length > 0 && now - lastInputTime > 1000) {
+        const morseChar = symbols.join('');
+        const letter = morseDict[morseChar] || '?';
+        currentWord.push(letter);
+        outputDiv.textContent = currentWord.join('');
+        morseDiv.textContent += ' ';
+        symbols = [];
+        lastInputTime = now;
+      }
+
+      // If user paused >3 seconds, treat as end of word
+      if (currentWord.length > 0 && now - lastInputTime > INACTIVITY_TIMEOUT) {
+        savedText += currentWord.join('') + ' ';
+        savedDiv.textContent = savedText;
+        outputDiv.textContent = '';
+        currentWord = [];
+        morseDiv.textContent = '';
+        lastInputTime = now;
+      }
+    }, 200);
+  </script>
 </body>
 </html>
